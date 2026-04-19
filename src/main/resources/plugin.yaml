@@ -1,0 +1,22 @@
+# Refer https://docs.halo.run/developer-guide/plugin/basics/manifest
+
+apiVersion: plugin.halo.run/v1alpha1
+kind: Plugin
+metadata:
+  # The name defines how the plugin is invoked, A unique name
+  name: webhook-notification
+spec:
+  enabled: true
+  requires: ">=2.23.0"
+  author:
+    name: ziyoung
+    website: https://github.com/bq60t
+  logo: logo.png
+  homepage: https://github.com/bq60t/webhook-notification#readme
+  repo: https://github.com/bq60t/webhook-notification
+  issues: https://github.com/bq60t/webhook-notification/issues
+  displayName: "webhook-notification"
+  description: "webhook-notification - Halo 插件"
+  license:
+    - name: "GPL-3.0"
+      url: "https://github.com/bq60t/webhook-notification/blob/main/LICENSE"
