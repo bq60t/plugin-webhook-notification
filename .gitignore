@@ -47,6 +47,9 @@ nbdist/
 .vscode
 !.vscode/extensions.json
 
+### Claude
+.claude
+
 ### Compiled class file
 *.class
 
@@ -74,6 +77,14 @@ lerna-debug.log*
 application-local.yml
 application-local.yaml
 application-local.properties
+
+### Build tools cache
+.npm
+.pnpm-store
+.yarn
+
+### TypeScript
+tsconfig.tsbuildinfo
 
 /ui/build/
 /workplace/
