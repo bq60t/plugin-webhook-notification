@@ -1,0 +1,80 @@
+apiVersion: v1alpha1
+kind: Setting
+metadata:
+  name: webhook-notification-settings
+spec:
+  forms:
+    - group: webhooks
+      label: Webhook 目标
+      formSchema:
+        - $formkit: repeater
+          name: endpoints
+          label: Webhook 列表
+          value: []
+          addLabel: 添加 Webhook
+          upControl: true
+          downControl: true
+          insertControl: false
+          removeControl: true
+          help: "可配置多个 Webhook 目标，每个目标可单独选择通知格式。"
+          children:
+            - $formkit: checkbox
+              name: enabled
+              label: 启用
+              value: true
+            - $formkit: text
+              if: "$value.enabled === true"
+              name: name
+              label: 名称
+              value: ""
+              help: "例如：我的 ntfy、Slack 频道。"
+              validation: required|length:1,64
+            - $formkit: url
+              if: "$value.enabled === true"
+              name: url
+              label: Webhook 地址
+              value: ""
+              validation: required|url
+            - $formkit: select
+              if: "$value.enabled === true"
+              name: format
+              label: 通知格式
+              value: generic-json
+              help: "常用渠道：ntfy 请选择 ntfy Markdown；Slack Incoming Webhook 请选择 Slack 兼容。"
+              options:
+                - label: 通用 JSON（适合自定义服务）
+                  value: generic-json
+                - label: ntfy Markdown（推荐 ntfy）
+                  value: ntfy-markdown
+                - label: Slack 兼容（适合 Slack Incoming Webhook）
+                  value: slack-compatible
+            - $formkit: textarea
+              if: "$value.enabled === true"
+              name: headersJson
+              label: 自定义请求头（可选）
+              value: "{}"
+              help: "请输入 JSON 对象，例如 {\"Authorization\":\"Bearer xxx\",\"X-Source\":\"halo\"}"
+              rows: 6
+    - group: events
+      label: 事件开关
+      formSchema:
+        - $formkit: checkbox
+          name: userLogin
+          label: 用户登录
+          value: true
+        - $formkit: checkbox
+          name: newDeviceLogin
+          label: 新设备登录
+          value: true
+        - $formkit: checkbox
+          name: passwordChanged
+          label: 修改密码
+          value: true
+        - $formkit: checkbox
+          name: commentCreated
+          label: 收到评论
+          value: true
+        - $formkit: checkbox
+          name: replyCreated
+          label: 评论被回复
+          value: true

@@ -13,8 +13,10 @@ repositories {
 dependencies {
     implementation platform('run.halo.tools.platform:plugin:2.23.0')
     compileOnly 'run.halo.app:api'
+    compileOnly 'org.springframework:spring-webflux'
 
     testImplementation 'run.halo.app:api'
+    testImplementation 'org.springframework:spring-webflux'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -52,4 +54,3 @@ tasks.named('generatePluginComponentsIdx') {
 halo {
     version = '2.23'
 }
-

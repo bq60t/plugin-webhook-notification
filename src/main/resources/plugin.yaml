@@ -8,15 +8,17 @@ metadata:
 spec:
   enabled: true
   requires: ">=2.23.0"
+  settingName: webhook-notification-settings
+  configMapName: webhook-notification-configmap
   author:
     name: ziyoung
-    website: https://github.com/bq60t
+    website: https://ziyoung.top
   logo: logo.png
-  homepage: https://github.com/bq60t/webhook-notification#readme
-  repo: https://github.com/bq60t/webhook-notification
-  issues: https://github.com/bq60t/webhook-notification/issues
-  displayName: "webhook-notification"
-  description: "webhook-notification - Halo 插件"
+  homepage: https://github.com/bq60t/plugin-webhook-notification#readme
+  repo: https://github.com/bq60t/plugin-webhook-notification
+  issues: https://github.com/bq60t/plugin-webhook-notification/issues
+  displayName: "Webhook 通知"
+  description: "为 Halo 常见事件发送可配置的 Webhook 通知"
   license:
     - name: "GPL-3.0"
-      url: "https://github.com/bq60t/webhook-notification/blob/main/LICENSE"
+      url: "https://github.com/bq60t/plugin-webhook-notification/blob/main/LICENSE"

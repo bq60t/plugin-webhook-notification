@@ -1,31 +1,32 @@
 package top.ziyoung.webhooknotification;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import run.halo.app.plugin.BasePlugin;
 import run.halo.app.plugin.PluginContext;
+import top.ziyoung.webhooknotification.watcher.HaloResourceWatcherRegistrar;
 
-/**
- * <p>Plugin main class to manage the lifecycle of the plugin.</p>
- * <p>This class must be public and have a public constructor.</p>
- * <p>Only one main class extending {@link BasePlugin} is allowed per plugin.</p>
- *
- * @author ziyoung
- * @since 1.0.0
- */
+@Slf4j
 @Component
 public class WebhookNotificationPlugin extends BasePlugin {
 
-    public WebhookNotificationPlugin(PluginContext pluginContext) {
+    private final HaloResourceWatcherRegistrar watcherRegistrar;
+
+    public WebhookNotificationPlugin(PluginContext pluginContext,
+        HaloResourceWatcherRegistrar watcherRegistrar) {
         super(pluginContext);
+        this.watcherRegistrar = watcherRegistrar;
     }
 
     @Override
     public void start() {
-        System.out.println("插件启动成功！");
+        watcherRegistrar.start();
+        log.info("Webhook notification plugin started.");
     }
 
     @Override
     public void stop() {
-        System.out.println("插件停止！");
+        watcherRegistrar.stop();
+        log.info("Webhook notification plugin stopped.");
     }
 }
