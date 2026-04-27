@@ -10,7 +10,9 @@ import run.halo.app.core.extension.Device;
 import run.halo.app.core.extension.User;
 import run.halo.app.core.extension.content.Comment;
 import run.halo.app.core.extension.content.Reply;
+import run.halo.app.extension.ConfigMap;
 import run.halo.app.extension.ExtensionClient;
+import run.halo.app.infra.SystemSetting;
 import top.ziyoung.webhooknotification.model.NotificationEvent;
 import top.ziyoung.webhooknotification.model.NotificationEventType;
 import top.ziyoung.webhooknotification.model.NotificationSubject;
@@ -24,7 +26,7 @@ public class WebhookEventPublisher {
     private final ExtensionClient extensionClient;
 
     public void publishUserLogin(User user) {
-        var title = "用户登录：" + displayUser(user);
+        var title = "User login: " + displayUser(user);
         var details = orderedMap(
             "user", user.getMetadata().getName(),
             "displayName", emptyToDash(user.getSpec().getDisplayName()),
@@ -33,7 +35,7 @@ public class WebhookEventPublisher {
         dispatcher.dispatch(new NotificationEvent(
             NotificationEventType.USER_LOGIN,
             title,
-            "Halo 用户登录成功",
+            "Halo user login detected",
             joinLines(title, formatDetails(details)),
             "## " + title + "\n\n" + formatMarkdownDetails(details),
             Instant.now(),
@@ -43,7 +45,7 @@ public class WebhookEventPublisher {
     }
 
     public void publishNewDeviceLogin(Device device) {
-        var title = "新设备登录：" + device.getSpec().getPrincipalName();
+        var title = "New device login: " + device.getSpec().getPrincipalName();
         var details = orderedMap(
             "user", emptyToDash(device.getSpec().getPrincipalName()),
             "ipAddress", emptyToDash(device.getSpec().getIpAddress()),
@@ -58,7 +60,7 @@ public class WebhookEventPublisher {
         dispatcher.dispatch(new NotificationEvent(
             NotificationEventType.NEW_DEVICE_LOGIN,
             title,
-            "检测到新的设备登录记录",
+            "New device login detected",
             joinLines(title, formatDetails(details)),
             "## " + title + "\n\n" + formatMarkdownDetails(details),
             Instant.now(),
@@ -68,13 +70,16 @@ public class WebhookEventPublisher {
     }
 
     public void publishPasswordChanged(User oldUser, User newUser) {
+        // Halo 2.23.0 does not expose a dedicated password-changed shared event in plugin API.
+        // For now we infer password updates from User onUpdate and compare the password field.
+        // Replace this inference once Halo provides an explicit password-change event.
         if (Objects.equals(oldUser.getSpec().getPassword(), newUser.getSpec().getPassword())) {
             return;
         }
         if (newUser.getSpec().getPassword() == null || newUser.getSpec().getPassword().isBlank()) {
             return;
         }
-        var title = "用户修改密码：" + displayUser(newUser);
+        var title = "Password changed: " + displayUser(newUser);
         var details = orderedMap(
             "user", newUser.getMetadata().getName(),
             "displayName", emptyToDash(newUser.getSpec().getDisplayName()),
@@ -83,7 +88,7 @@ public class WebhookEventPublisher {
         dispatcher.dispatch(new NotificationEvent(
             NotificationEventType.PASSWORD_CHANGED,
             title,
-            "检测到用户密码已修改",
+            "User password changed",
             joinLines(title, formatDetails(details)),
             "## " + title + "\n\n" + formatMarkdownDetails(details),
             Instant.now(),
@@ -96,19 +101,22 @@ public class WebhookEventPublisher {
         // Resolve the subject through Halo's comment subject extension point so notifications can
         // link back to the actual post/page instead of only exposing the raw ref name.
         var subject = subjectResolver.resolve(comment.getSpec().getSubjectRef());
-        var title = "收到评论：" + subject.title();
+        var includeApprovedStatus = shouldIncludeApprovedStatus();
+        var title = "Comment received: " + subject.title();
         var details = orderedMap(
             "author", commentOwner(comment.getSpec().getOwner()),
-            "approved", comment.getSpec().getApproved() ? "已审核" : "待审核",
             "content", excerpt(comment.getSpec().getRaw())
         );
+        if (includeApprovedStatus) {
+            details.put("approved", comment.getSpec().getApproved() ? "approved" : "pending review");
+        }
         dispatcher.dispatch(new NotificationEvent(
             NotificationEventType.COMMENT_CREATED,
             title,
-            "Halo 收到新的评论",
-            joinLines(title, "主题：" + subject.title(), formatDetails(details)),
+            "Halo received a new comment",
+            joinLines(title, "Subject: " + subject.title(), formatDetails(details)),
             "## " + title + "\n\n"
-                + "- 主题：" + subject.title() + "\n"
+                + "- Subject: " + subject.title() + "\n"
                 + formatMarkdownDetails(details),
             Instant.now(),
             subject,
@@ -120,23 +128,26 @@ public class WebhookEventPublisher {
         // Replies only carry the owning comment name, so fetch the comment first to recover the
         // original subject and keep reply notifications consistent with comment notifications.
         var comment = extensionClient.fetch(Comment.class, reply.getSpec().getCommentName()).orElse(null);
+        var includeApprovedStatus = shouldIncludeApprovedStatus();
         NotificationSubject subject = comment == null
-            ? new NotificationSubject("评论：" + reply.getSpec().getCommentName(), "")
+            ? new NotificationSubject("Comment", "")
             : subjectResolver.resolve(comment.getSpec().getSubjectRef());
-        var title = "评论被回复：" + subject.title();
+        var title = "Reply received: " + subject.title();
         var details = orderedMap(
             "author", commentOwner(reply.getSpec().getOwner()),
-            "approved", reply.getSpec().getApproved() ? "已审核" : "待审核",
             "content", excerpt(reply.getSpec().getRaw()),
-            "commentName", reply.getSpec().getCommentName()
+            "comment", comment == null ? "-" : excerpt(comment.getSpec().getRaw())
         );
+        if (includeApprovedStatus) {
+            details.put("approved", reply.getSpec().getApproved() ? "approved" : "pending review");
+        }
         dispatcher.dispatch(new NotificationEvent(
             NotificationEventType.REPLY_CREATED,
             title,
-            "Halo 评论出现新的回复",
-            joinLines(title, "主题：" + subject.title(), formatDetails(details)),
+            "Halo received a new reply",
+            joinLines(title, "Subject: " + subject.title(), formatDetails(details)),
             "## " + title + "\n\n"
-                + "- 主题：" + subject.title() + "\n"
+                + "- Subject: " + subject.title() + "\n"
                 + formatMarkdownDetails(details),
             Instant.now(),
             subject,
@@ -175,7 +186,7 @@ public class WebhookEventPublisher {
 
     private static String formatMarkdownDetails(Map<String, String> details) {
         return details.entrySet().stream()
-            .map(entry -> "- " + entry.getKey() + "：" + entry.getValue())
+            .map(entry -> "- " + entry.getKey() + ": " + entry.getValue())
             .reduce((left, right) -> left + "\n" + right)
             .orElse("");
     }
@@ -218,5 +229,26 @@ public class WebhookEventPublisher {
 
     private static String emptyToBlank(String value) {
         return value == null ? "" : value;
+    }
+
+    private boolean shouldIncludeApprovedStatus() {
+        try {
+            var configMap = extensionClient.fetch(ConfigMap.class, SystemSetting.SYSTEM_CONFIG)
+                .orElse(null);
+            if (configMap == null || configMap.getData() == null) {
+                return true;
+            }
+            var commentSetting = SystemSetting.get(
+                configMap.getData(),
+                SystemSetting.Comment.GROUP,
+                SystemSetting.Comment.class
+            );
+            if (commentSetting == null || commentSetting.getRequireReviewForNew() == null) {
+                return true;
+            }
+            return Boolean.TRUE.equals(commentSetting.getRequireReviewForNew());
+        } catch (Exception ignored) {
+            return true;
+        }
     }
 }

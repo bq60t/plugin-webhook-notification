@@ -45,13 +45,23 @@ public final class WebhookPayloadBuilder {
 
     private static FormattedWebhookRequest buildNtfy(NotificationEvent event) {
         var headers = new LinkedHashMap<String, String>();
-        headers.put("Title", event.title());
+        headers.put("Title", ntfyTitle(event));
         headers.put("Markdown", "yes");
         headers.put("Tags", event.type().ntfyTag());
         if (event.subject() != null && event.subject().url() != null && !event.subject().url().isBlank()) {
             headers.put("Click", event.subject().url());
         }
         return new FormattedWebhookRequest(MediaType.TEXT_PLAIN, event.markdownBody(), headers);
+    }
+
+    private static String ntfyTitle(NotificationEvent event) {
+        return switch (event.type()) {
+            case COMMENT_CREATED -> "Comment received";
+            case REPLY_CREATED -> "Reply received";
+            case PASSWORD_CHANGED -> "Password changed";
+            case USER_LOGIN -> "User login";
+            case NEW_DEVICE_LOGIN -> "New device login";
+        };
     }
 
     private static FormattedWebhookRequest buildSlack(NotificationEvent event) {

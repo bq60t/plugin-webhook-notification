@@ -40,6 +40,7 @@ class WebhookNotificationPluginTest {
 
         assertEquals("text/plain", request.contentType().toString());
         assertTrue(request.headers().containsKey("Title"));
+        assertEquals("Comment received", request.headers().get("Title"));
         assertEquals("yes", request.headers().get("Markdown"));
         assertEquals(event.markdownBody(), request.body());
     }
